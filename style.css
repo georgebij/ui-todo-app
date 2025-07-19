@@ -5,31 +5,48 @@ body {
   justify-content: center;
   padding-top: 50px;
 }
+
 .container {
-  background-color:#f6f8fa;
+  background-color: #f6f8fa;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 10px #ccc;
-  width: 90%;              /* 💡 key change: responsive width */
-  max-width: 500px;        /* prevents it from getting too wide on desktops */
-  margin: 0 auto;          /* centers it */
+  width: 90%;
+  max-width: 500px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
-body.dark .container {
-  background-color: #2c2c2c; /* or try #1e1e1e or #3a3a3a */
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+
+body.dark {
+  background-color: #1e1e1e;
+  color: #f8fc0e;
 }
 
-body.dark h1,
-body.dark label,
+body.dark .container {
+  background-color: #2c2c2c;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.1);
+}
 
 h1 {
   text-align: center;
 }
 
-input {
-  width: 70%;
+.input-group {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+input,
+select {
   padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+input {
+  flex: 1;
   margin-right: 10px;
 }
 
@@ -37,17 +54,17 @@ button {
   padding: 10px 16px;
   border: solid 1px rgb(13, 46, 232);
   border-radius: 10px;
-  background-color: #e9eaeb;   
-  color: rgb(248, 246, 246);
+  background-color: #e9eaeb;
+  color: #333;
   font-size: 16px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
 
 button:hover {
-  background-color: #388E3C;   /* darker green on hover */
+  background-color: #388e3c;
+  color: white;
 }
-
 
 ul {
   list-style: none;
@@ -66,16 +83,13 @@ li.completed {
   text-decoration: line-through;
   color: gray;
 }
-.input-group {
-  display: flex;
-  align-items: center;
-}
+
 #mic {
-  background-color: #e9eaeb;      /* soft red */
+  background-color: #e9eaeb;
   color: white;
   border: solid 1px rgb(19, 6, 161);
-  border-radius: 10px;            /* more rounded corners */
-  padding: 10px 16px;             /* gives it rectangular shape */
+  border-radius: 10px;
+  padding: 10px 16px;
   margin-right: 10px;
   font-size: 16px;
   cursor: pointer;
@@ -83,24 +97,20 @@ li.completed {
 }
 
 #mic:hover {
-  background-color: #cc0000;      /* darker red on hover */
+  background-color: #cc0000;
 }
+
 #mic.recording {
   animation: pulse 1s infinite;
 }
 
 @keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(255, 77, 77, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 77, 77, 0);
-  }
+  0% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 77, 77, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 77, 77, 0); }
 }
-/* Hide by default */
+
+/* How-to section */
 .hidden {
   display: none;
 }
@@ -117,7 +127,6 @@ body.dark #instructions {
   color: #eee;
 }
 
-/* Style the button */
 .info-btn {
   background-color: #bcc1e3;
   border: none;
@@ -127,7 +136,8 @@ body.dark #instructions {
   font-weight: bold;
   margin-bottom: 10px;
 }
-/* Align toggle inside the container */
+
+/* Top bar */
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -135,32 +145,22 @@ body.dark #instructions {
   padding: 10px 0;
 }
 
-/* Adjust toggle container if needed */
-.toggle-container {
-  z-index: 10;
-}
-/* Toggle switch container (top-right) */
-
 .toggle-container {
   margin-left: auto;
 }
 
-/* The switch - the box around the slider */
+/* Dark mode toggle switch */
 .switch {
   position: relative;
   display: inline-block;
   width: 50px;
   height: 26px;
 }
-
-/* Hide default HTML checkbox */
 .switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
-
-/* The slider */
 .slider {
   position: absolute;
   cursor: pointer;
@@ -172,8 +172,6 @@ body.dark #instructions {
   bottom: 0;
   transition: 0.4s;
 }
-
-/* Toggle handle */
 .slider:before {
   position: absolute;
   content: "";
@@ -185,21 +183,65 @@ body.dark #instructions {
   background-color: white;
   transition: 0.4s;
 }
-
 input:checked + .slider {
-  background-color: #2196F3;
+  background-color: #2196f3;
 }
-
 input:checked + .slider:before {
   transform: translateX(24px);
 }
 
-/* DARK MODE STYLES */
-body.dark {
-  background-color: #1e1e1e;
-  color: #f8fc0e;
+/* Category dropdown section */
+.category-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 15px;
+  align-items: center;
 }
 
+#category-select,
+#new-category-input {
+  padding: 10px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+#add-category-btn {
+  padding: 6px 10px;
+  font-size: 14px;
+  background-color: #e9eaeb;
+  color: #333;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  border: solid 1px rgb(13, 46, 232);
+}
+#add-category-btn:hover {
+  background-color: #cddc39;
+  color: black;
+}
+
+/* Delete category */
+#delete-category-btn {
+  padding: 6px 10px;
+  font-size: 14px;
+  background-color: #f9dcdc;
+  color: #a00;
+  border-radius: 8px;
+  border: 1px solid #a00;
+  cursor: pointer;
+  visibility: hidden;
+}
+#delete-category-btn.visible {
+  visibility: visible;
+}
+#delete-category-btn:hover {
+  background-color: #f44336;
+  color: white;
+}
+
+/* Clock display */
 .clock {
   margin-top: 20px;
   font-size: 1.2rem;

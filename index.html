@@ -1,19 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+<head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#d3e67e">
-
-<head>
   <meta charset="UTF-8">
   <title>To-Do App</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
-
 </head>
 <body>
   <div class="container">
     <div class="top-bar">
-    <h1>📝 To-Do List</h1> 
+      <h1>📝 To-Do List</h1>
       <div class="toggle-container">
         <label class="switch">
           <input type="checkbox" id="darkModeToggle">
@@ -21,30 +19,40 @@
         </label>
       </div>
     </div>
+
     <button id="helpBtn" class="info-btn">How to Use</button>
-        <div id="instructions" class="hidden">
-          <h3>📌 How to Use</h3>
-          <ul>
-            <li>📝 Type a task and click ➕ or 🎤 mic to add it</li>
-            <li>✅ Mark tasks complete by checking the box</li>
-            <li>❌ Delete tasks using the red cross</li>
-            <li>🌙 Toggle dark mode with the top-right switch</li>
-            <li>🕒 View live clock below</li>
-            <li>📱 On mobile: tap browser menu → Add to Home Screen</li>
-          </ul>
-        </div>
-    <!-- 🔁 Replace the old input & button section with this -->
+    <div id="instructions" class="hidden">
+      <h3>📌 How to Use</h3>
+      <ul>
+        <li>📝 Type a task and click ➕ or 🎤 mic to add it</li>
+        <li>✅ Mark tasks complete by checking the box</li>
+        <li>❌ Delete tasks using the red cross</li>
+        <li>🌙 Toggle dark mode with the top-right switch</li>
+        <li>🕒 View live clock below</li>
+        <li>📱 On mobile: tap browser menu → Add to Home Screen</li>
+      </ul>
+    </div>
+
+    <!-- Category Selection -->
+    <div class="category-group">
+      <select id="category-select">
+        <option value="" disabled selected>Select category</option>
+      </select>
+      <input type="text" id="new-category-input" placeholder="New category name" class="hidden" />
+      <button id="add-category-btn">Add Category</button>
+      <button id="delete-category-btn" disabled>🗑️ Delete</button>
+    </div>
+
+    <!-- Task Input Section -->
     <div class="input-group">
       <input type="text" id="task-input" placeholder="Add a new task..." />
       <button id="mic" title="Click to speak">🎤</button>
       <button id="add-task" title="Add task">➕</button>
-
     </div>
 
     <ul id="task-list"></ul>
-  <div id="liveClock" class="clock"></div>
+    <div id="liveClock" class="clock"></div>
   </div>
- 
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

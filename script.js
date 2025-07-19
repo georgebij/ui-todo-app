@@ -1,72 +1,68 @@
+// DOM Elements
 const addBtn = document.getElementById("add-task");
 const micBtn = document.getElementById("mic");
 const input = document.getElementById("task-input");
 const list = document.getElementById("task-list");
+const helpBtn = document.getElementById("helpBtn");
+const instructions = document.getElementById("instructions");
+const darkToggle = document.getElementById("darkModeToggle");
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
+const categorySelect = document.getElementById("category-select");
+const newCategoryInput = document.getElementById("new-category-input");
+const addCategoryBtn = document.getElementById("add-category-btn");
+const deleteCategoryBtn = document.getElementById("delete-category-btn");
+
+let categories = JSON.parse(localStorage.getItem("todoCategories")) || {};
+let currentCategory = null;
 
 // 🎤 Speech input handling
-recognition.onresult = function(event) {
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+recognition.onresult = function (event) {
   const transcript = event.results[0][0].transcript;
   input.value = transcript;
 };
-
 micBtn.addEventListener("click", () => {
   micBtn.classList.add("recording");
   recognition.start();
 });
-
 recognition.onend = function () {
   micBtn.classList.remove("recording");
 };
 
-// ✅ Toggle Instructions
+// 🌙 Toggle Instructions and Dark Mode
 window.addEventListener("DOMContentLoaded", () => {
-  const helpBtn = document.getElementById("helpBtn");
-  const instructions = document.getElementById("instructions");
+  helpBtn.addEventListener("click", () => {
+    instructions.classList.toggle("hidden");
+    helpBtn.textContent = instructions.classList.contains("hidden")
+      ? "How to Use"
+      : "🔽 Hide Instructions";
+  });
 
-helpBtn.addEventListener("click", () => {
-  instructions.classList.toggle("hidden");
-
-  if (instructions.classList.contains("hidden")) {
-    helpBtn.textContent = "How to Use";
-  } else {
-    helpBtn.textContent = "🔽 Hide Instructions";
-  }
+  darkToggle.addEventListener("change", () => {
+    document.body.classList.toggle("dark", darkToggle.checked);
+  });
 });
 
-const darkToggle = document.getElementById("darkModeToggle");
-
-darkToggle.addEventListener("change", () => {
-  document.body.classList.toggle("dark", darkToggle.checked);
-});
-
-
-});
-
-
-// ✅ Load tasks when page loads
-window.addEventListener("load", loadTasks);
-
+// ➕ Add task
 addBtn.addEventListener("click", addTask);
-
 function addTask() {
   const taskText = input.value.trim();
-  if (taskText === "") return;
+  if (taskText === "" || !currentCategory) return;
 
   const task = { text: taskText, completed: false };
-  const tasks = getTasksFromStorage();
-  tasks.push(task);
-  saveTasksToStorage(tasks);
+  categories[currentCategory].push(task);
   input.value = "";
-  renderTasks(tasks);
+  saveCategories();
+  renderTasks();
 }
 
-function renderTasks(tasks) {
+// 🗑️ Render task list
+function renderTasks() {
   list.innerHTML = "";
+  if (!currentCategory || !categories[currentCategory]) return;
 
-  tasks.forEach((task, index) => {
+  categories[currentCategory].forEach((task, index) => {
     const li = document.createElement("li");
     if (task.completed) li.classList.add("completed");
 
@@ -75,45 +71,106 @@ function renderTasks(tasks) {
       <button class="delete-btn">❌</button>
     `;
 
-    // Toggle complete
     li.querySelector("span").addEventListener("click", () => {
       task.completed = !task.completed;
-      saveTasksToStorage(tasks);
-      renderTasks(tasks);
+      saveCategories();
+      renderTasks();
     });
 
-    // Delete
     li.querySelector("button").addEventListener("click", () => {
-      tasks.splice(index, 1);
-      saveTasksToStorage(tasks);
-      renderTasks(tasks);
+      categories[currentCategory].splice(index, 1);
+      saveCategories();
+      renderTasks();
     });
 
     list.appendChild(li);
   });
 }
 
-function saveTasksToStorage(tasks) {
-  localStorage.setItem("tasks", JSON.stringify(tasks));
+// 💾 Save categories
+function saveCategories() {
+  localStorage.setItem("todoCategories", JSON.stringify(categories));
 }
 
-function getTasksFromStorage() {
-  const data = localStorage.getItem("tasks");
-  return data ? JSON.parse(data) : [];
-}
-
-function loadTasks() {
-  const tasks = getTasksFromStorage();
-  renderTasks(tasks);
-}
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js")
-      .then(reg => console.log("Service Worker registered!", reg))
-      .catch(err => console.error("Service Worker registration failed:", err));
+// 🔁 Update dropdown
+function updateCategoryDropdown() {
+  categorySelect.innerHTML = '<option disabled selected>Select category</option>';
+  Object.keys(categories).forEach((cat) => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    categorySelect.appendChild(option);
   });
+
+  if (currentCategory && categories[currentCategory]) {
+    categorySelect.value = currentCategory;
+    deleteCategoryBtn.classList.add("visible");
+  } else {
+    deleteCategoryBtn.classList.remove("visible");
+  }
 }
+
+// ➕ Add category button logic
+addCategoryBtn.addEventListener("click", () => {
+  if (newCategoryInput.classList.contains("hidden")) {
+    newCategoryInput.classList.remove("hidden");
+    newCategoryInput.focus();
+    deleteCategoryBtn.classList.remove("visible");
+    return;
+  }
+
+  const name = newCategoryInput.value.trim();
+  if (!name || categories[name]) return;
+
+  categories[name] = [];
+  saveCategories();
+  updateCategoryDropdown();
+  categorySelect.value = name;
+  currentCategory = name;
+  newCategoryInput.value = "";
+  newCategoryInput.classList.add("hidden");
+  deleteCategoryBtn.classList.add("visible");
+  renderTasks();
+});
+
+// 🔄 Hide category input when dropdown is focused
+categorySelect.addEventListener("focus", () => {
+  newCategoryInput.classList.add("hidden");
+});
+
+// 🔄 Handle dropdown change (select category)
+categorySelect.addEventListener("change", () => {
+  currentCategory = categorySelect.value;
+  renderTasks();
+  deleteCategoryBtn.classList.add("visible");
+  deleteCategoryBtn.disabled = false; // ✅ This line fixes the issue
+});
+
+// ✅ 🗑️ Delete category (fixed)
+deleteCategoryBtn.addEventListener("click", () => {
+  if (!currentCategory || !categories[currentCategory]) {
+    alert("Please select a category to delete.");
+    return;
+  }
+
+  const confirmDelete = confirm(
+    `Are you sure you want to delete "${currentCategory}" and all its tasks?`
+  );
+  if (!confirmDelete) return;
+
+  delete categories[currentCategory];
+  saveCategories();
+  currentCategory = null;
+  updateCategoryDropdown();
+  categorySelect.selectedIndex = 0;
+  list.innerHTML = "";
+  deleteCategoryBtn.classList.remove("visible");
+  deleteCategoryBtn.disabled = true; // ✅ Hide + disable again
+  alert("Deleted category successfully.");
+});
+
+
+// ⏰ Live Clock
 function updateClock() {
   const now = new Date();
   const clockEl = document.getElementById("liveClock");
@@ -121,3 +178,21 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// 🛠️ Init
+window.addEventListener("load", () => {
+  updateCategoryDropdown();
+});
+
+// 🧱 Service Worker (optional for PWA)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then((reg) => console.log("Service Worker registered!", reg))
+      .catch((err) =>
+        console.error("Service Worker registration failed:", err)
+      );
+  });
+}
+console.log("Delete button:", deleteCategoryBtn);
