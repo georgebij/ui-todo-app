@@ -3,6 +3,7 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#d3e67e">
+  <meta name="description" content="A fast, offline-first PWA to-do list with categories and voice input.">
   <meta charset="UTF-8">
   <title>To-Do App</title>
   <link rel="stylesheet" href="style.css">
@@ -35,6 +36,7 @@
 
     <!-- Category Selection -->
     <div class="category-group">
+      <label for="category-select">Category:</label>
       <select id="category-select">
         <option value="" disabled selected>Select category</option>
       </select>
@@ -45,6 +47,7 @@
 
     <!-- Task Input Section -->
     <div class="input-group">
+      <label for="task-input">Add Task:</label>
       <input type="text" id="task-input" placeholder="Add a new task..." />
       <button id="mic" title="Click to speak">🎤</button>
       <button id="add-task" title="Add task">➕</button>

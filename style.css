@@ -251,3 +251,7 @@ input:checked + .slider:before {
 body.dark .clock {
   color: #faec28;
 }
+label {
+  position: absolute;
+  left: -9999px;
+}
