@@ -57,5 +57,27 @@
     <div id="liveClock" class="clock"></div>
   </div>
   <script src="script.js"></script>
+  <script type="module">
+  // Import the functions you need from the SDKs
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyBXXNTzZo-lbED9MZQIotO3fujYIapafr4",
+    authDomain: "ui-todo-app-9a3b5.firebaseapp.com",
+    projectId: "ui-todo-app-9a3b5",
+    storageBucket: "ui-todo-app-9a3b5.firebasestorage.app",
+    messagingSenderId: "333238646450",
+    appId: "1:333238646450:web:823051916561913a353bab"
+  };
+
+  // Initialize Firebase and Firestore
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Make Firestore available globally
+  window.firebaseDB = db;
+</script>
 </body>
 </html>

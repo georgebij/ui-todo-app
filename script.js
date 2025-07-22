@@ -1,198 +1,162 @@
-// DOM Elements
-const addBtn = document.getElementById("add-task");
-const micBtn = document.getElementById("mic");
-const input = document.getElementById("task-input");
-const list = document.getElementById("task-list");
-const helpBtn = document.getElementById("helpBtn");
-const instructions = document.getElementById("instructions");
-const darkToggle = document.getElementById("darkModeToggle");
 
+// DOM Elements
+const input = document.getElementById("task-input");
+const addBtn = document.getElementById("add-btn");
+const taskList = document.getElementById("task-list");
 const categorySelect = document.getElementById("category-select");
-const newCategoryInput = document.getElementById("new-category-input");
 const addCategoryBtn = document.getElementById("add-category-btn");
+const categoryInputContainer = document.getElementById("category-input-container");
+const newCategoryInput = document.getElementById("new-category");
 const deleteCategoryBtn = document.getElementById("delete-category-btn");
 
-let categories = JSON.parse(localStorage.getItem("todoCategories")) || {};
 let currentCategory = null;
+let categories = {};
 
-// 🎤 Speech input handling
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
-recognition.onresult = function (event) {
-  const transcript = event.results[0][0].transcript;
-  input.value = transcript;
-};
-micBtn.addEventListener("click", () => {
-  micBtn.classList.add("recording");
-  recognition.start();
-});
-recognition.onend = function () {
-  micBtn.classList.remove("recording");
-};
-
-// 🌙 Toggle Instructions and Dark Mode
-window.addEventListener("DOMContentLoaded", () => {
-  helpBtn.addEventListener("click", () => {
-    instructions.classList.toggle("hidden");
-    helpBtn.textContent = instructions.classList.contains("hidden")
-      ? "How to Use"
-      : "🔽 Hide Instructions";
-  });
-
-  darkToggle.addEventListener("change", () => {
-    document.body.classList.toggle("dark", darkToggle.checked);
-  });
-});
-
-// ➕ Add task
-addBtn.addEventListener("click", addTask);
-function addTask() {
-  const taskText = input.value.trim();
-  if (taskText === "" || !currentCategory) return;
-
-  const task = { text: taskText, completed: false };
-  categories[currentCategory].push(task);
-  input.value = "";
-  saveCategories();
-  renderTasks();
+// Load from localStorage
+function loadCategories() {
+  const stored = localStorage.getItem("categories");
+  if (stored) {
+    categories = JSON.parse(stored);
+  }
 }
 
-// 🗑️ Render task list
-function renderTasks() {
-  list.innerHTML = "";
-  if (!currentCategory || !categories[currentCategory]) return;
-
-  categories[currentCategory].forEach((task, index) => {
-    const li = document.createElement("li");
-    if (task.completed) li.classList.add("completed");
-
-    li.innerHTML = `
-      <span>${task.text}</span>
-      <button class="delete-btn">❌</button>
-    `;
-
-    li.querySelector("span").addEventListener("click", () => {
-      task.completed = !task.completed;
-      saveCategories();
-      renderTasks();
-    });
-
-    li.querySelector("button").addEventListener("click", () => {
-      categories[currentCategory].splice(index, 1);
-      saveCategories();
-      renderTasks();
-    });
-
-    list.appendChild(li);
-  });
-}
-
-// 💾 Save categories
+// Save to localStorage
 function saveCategories() {
-  localStorage.setItem("todoCategories", JSON.stringify(categories));
+  localStorage.setItem("categories", JSON.stringify(categories));
 }
 
-// 🔁 Update dropdown
-function updateCategoryDropdown() {
-  categorySelect.innerHTML = '<option disabled selected>Select category</option>';
+// Render category options
+function renderCategories() {
+  categorySelect.innerHTML = "";
   Object.keys(categories).forEach((cat) => {
     const option = document.createElement("option");
     option.value = cat;
     option.textContent = cat;
     categorySelect.appendChild(option);
   });
-
   if (currentCategory && categories[currentCategory]) {
     categorySelect.value = currentCategory;
-    deleteCategoryBtn.classList.add("visible");
-  } else {
-    deleteCategoryBtn.classList.remove("visible");
   }
+  deleteCategoryBtn.disabled = !currentCategory;
 }
 
-// ➕ Add category button logic
-addCategoryBtn.addEventListener("click", () => {
-  if (newCategoryInput.classList.contains("hidden")) {
-    newCategoryInput.classList.remove("hidden");
-    newCategoryInput.focus();
-    deleteCategoryBtn.classList.remove("visible");
-    return;
-  }
+// Render tasks
+function renderTasks() {
+  if (!currentCategory) return;
+  taskList.innerHTML = "";
+  const tasks = categories[currentCategory] || [];
+  tasks.forEach((task, index) => {
+    const li = document.createElement("li");
+    li.textContent = task.text;
+    li.className = task.completed ? "completed" : "";
+    li.addEventListener("click", () => toggleComplete(index));
+    taskList.appendChild(li);
+  });
+}
 
-  const name = newCategoryInput.value.trim();
-  if (!name || categories[name]) return;
-
-  categories[name] = [];
+// Toggle task completion
+function toggleComplete(index) {
+  categories[currentCategory][index].completed = !categories[currentCategory][index].completed;
   saveCategories();
-  updateCategoryDropdown();
-  categorySelect.value = name;
-  currentCategory = name;
-  newCategoryInput.value = "";
-  newCategoryInput.classList.add("hidden");
-  deleteCategoryBtn.classList.add("visible");
   renderTasks();
-});
+}
 
-// 🔄 Hide category input when dropdown is focused
-categorySelect.addEventListener("focus", () => {
-  newCategoryInput.classList.add("hidden");
-});
+// Add task (hybrid: localStorage + Firestore)
+async function addTask() {
+  const taskText = input.value.trim();
+  if (!taskText || !currentCategory) return;
 
-// 🔄 Handle dropdown change (select category)
-categorySelect.addEventListener("change", () => {
-  currentCategory = categorySelect.value;
-  renderTasks();
-  deleteCategoryBtn.classList.add("visible");
-  deleteCategoryBtn.disabled = false; // ✅ This line fixes the issue
-});
+  const task = { text: taskText, completed: false };
+  categories[currentCategory].push(task);
+  saveCategories();
 
-// ✅ 🗑️ Delete category (fixed)
-deleteCategoryBtn.addEventListener("click", () => {
-  if (!currentCategory || !categories[currentCategory]) {
-    alert("Please select a category to delete.");
-    return;
+  if (navigator.onLine && window.firebaseDB) {
+    const db = window.firebaseDB;
+    await addDoc(collection(db, "tasks"), {
+      category: currentCategory,
+      task: taskText,
+      completed: false,
+      timestamp: new Date()
+    });
   }
 
-  const confirmDelete = confirm(
-    `Are you sure you want to delete "${currentCategory}" and all its tasks?`
-  );
-  if (!confirmDelete) return;
+  input.value = "";
+  renderTasks();
+}
+
+// Load tasks from Firestore
+async function loadTasks(category) {
+  if (!category || !navigator.onLine || !window.firebaseDB) return;
+  const db = window.firebaseDB;
+  const snapshot = await getDocs(collection(db, "tasks"));
+  const remoteTasks = [];
+  snapshot.forEach((doc) => {
+    const data = doc.data();
+    if (data.category === category) {
+      remoteTasks.push({ text: data.task, completed: data.completed });
+    }
+  });
+  categories[category] = remoteTasks;
+  saveCategories();
+  renderTasks();
+}
+
+// Delete selected category (from both storage)
+async function deleteCurrentCategory() {
+  if (!currentCategory) return;
+
+  // Remove from Firestore
+  if (navigator.onLine && window.firebaseDB) {
+    const db = window.firebaseDB;
+    const snapshot = await getDocs(collection(db, "tasks"));
+    snapshot.forEach(async (docSnap) => {
+      const data = docSnap.data();
+      if (data.category === currentCategory) {
+        await deleteDoc(doc(db, "tasks", docSnap.id));
+      }
+    });
+  }
 
   delete categories[currentCategory];
   saveCategories();
   currentCategory = null;
-  updateCategoryDropdown();
-  categorySelect.selectedIndex = 0;
-  list.innerHTML = "";
-  deleteCategoryBtn.classList.remove("visible");
-  deleteCategoryBtn.disabled = true; // ✅ Hide + disable again
-  alert("Deleted category successfully.");
-});
-
-
-// ⏰ Live Clock
-function updateClock() {
-  const now = new Date();
-  const clockEl = document.getElementById("liveClock");
-  clockEl.textContent = now.toLocaleTimeString();
+  renderCategories();
+  taskList.innerHTML = "";
 }
-setInterval(updateClock, 1000);
-updateClock();
 
-// 🛠️ Init
-window.addEventListener("load", () => {
-  updateCategoryDropdown();
+// Event Listeners
+addBtn.addEventListener("click", addTask);
+categorySelect.addEventListener("change", () => {
+  currentCategory = categorySelect.value;
+  deleteCategoryBtn.disabled = false;
+  loadTasks(currentCategory);
 });
+addCategoryBtn.addEventListener("click", () => {
+  categoryInputContainer.style.display = "block";
+  deleteCategoryBtn.style.display = "none";
+});
+newCategoryInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const newCat = newCategoryInput.value.trim();
+    if (newCat && !categories[newCat]) {
+      categories[newCat] = [];
+      currentCategory = newCat;
+      saveCategories();
+      renderCategories();
+      renderTasks();
+    }
+    newCategoryInput.value = "";
+    categoryInputContainer.style.display = "none";
+    deleteCategoryBtn.style.display = "inline-block";
+  }
+});
+deleteCategoryBtn.addEventListener("click", deleteCurrentCategory);
 
-// 🧱 Service Worker (optional for PWA)
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("service-worker.js")
-      .then((reg) => console.log("Service Worker registered!", reg))
-      .catch((err) =>
-        console.error("Service Worker registration failed:", err)
-      );
-  });
+// Initialize
+loadCategories();
+renderCategories();
+if (categorySelect.value) {
+  currentCategory = categorySelect.value;
+  loadTasks(currentCategory);
 }
-console.log("Delete button:", deleteCategoryBtn);
+renderTasks();
