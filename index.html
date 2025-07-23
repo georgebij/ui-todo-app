@@ -3,7 +3,6 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#d3e67e">
-  <meta name="description" content="A fast, offline-first PWA to-do list with categories and voice input.">
   <meta charset="UTF-8">
   <title>To-Do App</title>
   <link rel="stylesheet" href="style.css">
@@ -36,7 +35,6 @@
 
     <!-- Category Selection -->
     <div class="category-group">
-      <label for="category-select">Category:</label>
       <select id="category-select">
         <option value="" disabled selected>Select category</option>
       </select>
@@ -47,7 +45,6 @@
 
     <!-- Task Input Section -->
     <div class="input-group">
-      <label for="task-input">Add Task:</label>
       <input type="text" id="task-input" placeholder="Add a new task..." />
       <button id="mic" title="Click to speak">🎤</button>
       <button id="add-task" title="Add task">➕</button>
@@ -56,37 +53,6 @@
     <ul id="task-list"></ul>
     <div id="liveClock" class="clock"></div>
   </div>
-
-<!-- Firebase SDK module -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyBXXNTzZo-lbED9MZQIotO3fujYIapafr4",
-    authDomain: "ui-todo-app-9a3b5.firebaseapp.com",
-    projectId: "ui-todo-app-9a3b5",
-    storageBucket: "ui-todo-app-9a3b5.firebasestorage.app",
-    messagingSenderId: "333238646450",
-    appId: "1:333238646450:web:823051916561913a353bab"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // Make addTaskToFirebase accessible to script.js
-  window.addTaskToFirebase = async function (task) {
-    try {
-      const docRef = await addDoc(collection(db, "tasks"), task);
-      console.log("✅ Task synced to Firebase with ID:", docRef.id);
-    } catch (e) {
-      console.error("❌ Firebase Error:", e);
-    }
-  };
-  // Make Firestore available globally
-  window.firebaseDB = db;
-</script>
-<!-- Your main script.js (regular script) -->
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

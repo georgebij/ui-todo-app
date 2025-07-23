@@ -1,172 +1,198 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const taskInput = document.getElementById("task-input");
-  const taskList = document.getElementById("task-list");
-  const addTaskBtn = document.getElementById("add-task-btn");
-  const categorySelect = document.getElementById("category-select");
-  const addCategoryBtn = document.getElementById("add-category-btn");
-  const deleteCategoryBtn = document.getElementById("delete-category-btn");
-  const newCategoryInput = document.getElementById("new-category-input");
-  const clockElement = document.getElementById("clock");
-  const micBtn = document.getElementById("mic-btn");
-  const toggleDarkMode = document.getElementById("toggle-dark-mode");
+// DOM Elements
+const addBtn = document.getElementById("add-task");
+const micBtn = document.getElementById("mic");
+const input = document.getElementById("task-input");
+const list = document.getElementById("task-list");
+const helpBtn = document.getElementById("helpBtn");
+const instructions = document.getElementById("instructions");
+const darkToggle = document.getElementById("darkModeToggle");
 
-  // DARK MODE
-  toggleDarkMode.addEventListener("click", () => {
-    document.body.classList.toggle("dark-mode");
-    localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
-  });
+const categorySelect = document.getElementById("category-select");
+const newCategoryInput = document.getElementById("new-category-input");
+const addCategoryBtn = document.getElementById("add-category-btn");
+const deleteCategoryBtn = document.getElementById("delete-category-btn");
 
-  if (localStorage.getItem("darkMode") === "true") {
-    document.body.classList.add("dark-mode");
-  }
+let categories = JSON.parse(localStorage.getItem("todoCategories")) || {};
+let currentCategory = null;
 
-  // CLOCK
-  function updateClock() {
-    const now = new Date();
-    clockElement.textContent = now.toLocaleTimeString();
-  }
-  updateClock();
-  setInterval(updateClock, 1000);
-
-  // CATEGORY HANDLING
-  function saveCategories(categories) {
-    localStorage.setItem("categories", JSON.stringify(categories));
-  }
-
-  function loadCategories() {
-    const categories = JSON.parse(localStorage.getItem("categories")) || [];
-    categorySelect.innerHTML = `<option value="">Select Category</option>`;
-    categories.forEach((cat) => {
-      const option = document.createElement("option");
-      option.value = cat;
-      option.textContent = cat;
-      categorySelect.appendChild(option);
-    });
-    deleteCategoryBtn.disabled = true;
-  }
-
-  function getTasks() {
-    return JSON.parse(localStorage.getItem("tasks")) || {};
-  }
-
-  function saveTasks(tasks) {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
-  }
-
-  function loadTasks() {
-    const selectedCategory = categorySelect.value;
-    const tasks = getTasks();
-    taskList.innerHTML = "";
-    if (selectedCategory && tasks[selectedCategory]) {
-      tasks[selectedCategory].forEach((task, index) => {
-        const li = document.createElement("li");
-        li.textContent = task;
-        taskList.appendChild(li);
-      });
-    }
-  }
-
-  // Add category
-  addCategoryBtn.addEventListener("click", () => {
-    newCategoryInput.style.display = "inline-block";
-    newCategoryInput.focus();
-    addCategoryBtn.style.display = "none";
-    deleteCategoryBtn.style.display = "none";
-  });
-
-  newCategoryInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      const category = newCategoryInput.value.trim();
-      if (category) {
-        const categories = JSON.parse(localStorage.getItem("categories")) || [];
-        if (!categories.includes(category)) {
-          categories.push(category);
-          saveCategories(categories);
-          loadCategories();
-          categorySelect.value = category;
-          loadTasks();
-        }
-        newCategoryInput.value = "";
-        newCategoryInput.style.display = "none";
-        addCategoryBtn.style.display = "inline-block";
-        deleteCategoryBtn.style.display = "inline-block";
-      }
-    }
-  });
-
-  categorySelect.addEventListener("change", () => {
-    loadTasks();
-    deleteCategoryBtn.disabled = !categorySelect.value;
-    newCategoryInput.style.display = "none";
-    addCategoryBtn.style.display = "inline-block";
-    deleteCategoryBtn.style.display = "inline-block";
-  });
-
-  deleteCategoryBtn.addEventListener("click", () => {
-    const selected = categorySelect.value;
-    if (selected && confirm(`Delete category "${selected}"?`)) {
-      const categories = JSON.parse(localStorage.getItem("categories")) || [];
-      const updatedCategories = categories.filter((c) => c !== selected);
-      saveCategories(updatedCategories);
-      const tasks = getTasks();
-      delete tasks[selected];
-      saveTasks(tasks);
-      loadCategories();
-      loadTasks();
-    }
-  });
-
-  // Add task (hybrid: localStorage + Firestore)
-  async function addTask() {
-    const category = categorySelect.value;
-    const task = taskInput.value.trim();
-    if (category && task) {
-      const tasks = getTasks();
-      if (!tasks[category]) tasks[category] = [];
-      tasks[category].push(task);
-      saveTasks(tasks);
-      loadTasks();
-
-      // Firestore save
-      if (window.addTaskToFirebase) {
-        await window.addTaskToFirebase(category, task);
-      }
-
-      taskInput.value = "";
-    }
-  }
-
-  addTaskBtn.addEventListener("click", addTask);
-
-  taskInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") addTask();
-  });
-
-  // Voice to text
-  if ("webkitSpeechRecognition" in window) {
-    const recognition = new webkitSpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = false;
-    recognition.interimResults = false;
-
-    micBtn.addEventListener("click", () => {
-      recognition.start();
-    });
-
-    recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      taskInput.value = transcript;
-      recognition.stop();
-    };
-
-    recognition.onerror = (event) => {
-      console.error("Speech recognition error", event);
-    };
-  } else {
-    micBtn.style.display = "none";
-  }
-
-  // Load categories/tasks on init
-  loadCategories();
-  loadTasks();
+// 🎤 Speech input handling
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const recognition = new SpeechRecognition();
+recognition.onresult = function (event) {
+  const transcript = event.results[0][0].transcript;
+  input.value = transcript;
+};
+micBtn.addEventListener("click", () => {
+  micBtn.classList.add("recording");
+  recognition.start();
 });
+recognition.onend = function () {
+  micBtn.classList.remove("recording");
+};
+
+// 🌙 Toggle Instructions and Dark Mode
+window.addEventListener("DOMContentLoaded", () => {
+  helpBtn.addEventListener("click", () => {
+    instructions.classList.toggle("hidden");
+    helpBtn.textContent = instructions.classList.contains("hidden")
+      ? "How to Use"
+      : "🔽 Hide Instructions";
+  });
+
+  darkToggle.addEventListener("change", () => {
+    document.body.classList.toggle("dark", darkToggle.checked);
+  });
+});
+
+// ➕ Add task
+addBtn.addEventListener("click", addTask);
+function addTask() {
+  const taskText = input.value.trim();
+  if (taskText === "" || !currentCategory) return;
+
+  const task = { text: taskText, completed: false };
+  categories[currentCategory].push(task);
+  input.value = "";
+  saveCategories();
+  renderTasks();
+}
+
+// 🗑️ Render task list
+function renderTasks() {
+  list.innerHTML = "";
+  if (!currentCategory || !categories[currentCategory]) return;
+
+  categories[currentCategory].forEach((task, index) => {
+    const li = document.createElement("li");
+    if (task.completed) li.classList.add("completed");
+
+    li.innerHTML = `
+      <span>${task.text}</span>
+      <button class="delete-btn">❌</button>
+    `;
+
+    li.querySelector("span").addEventListener("click", () => {
+      task.completed = !task.completed;
+      saveCategories();
+      renderTasks();
+    });
+
+    li.querySelector("button").addEventListener("click", () => {
+      categories[currentCategory].splice(index, 1);
+      saveCategories();
+      renderTasks();
+    });
+
+    list.appendChild(li);
+  });
+}
+
+// 💾 Save categories
+function saveCategories() {
+  localStorage.setItem("todoCategories", JSON.stringify(categories));
+}
+
+// 🔁 Update dropdown
+function updateCategoryDropdown() {
+  categorySelect.innerHTML = '<option disabled selected>Select category</option>';
+  Object.keys(categories).forEach((cat) => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    categorySelect.appendChild(option);
+  });
+
+  if (currentCategory && categories[currentCategory]) {
+    categorySelect.value = currentCategory;
+    deleteCategoryBtn.classList.add("visible");
+  } else {
+    deleteCategoryBtn.classList.remove("visible");
+  }
+}
+
+// ➕ Add category button logic
+addCategoryBtn.addEventListener("click", () => {
+  if (newCategoryInput.classList.contains("hidden")) {
+    newCategoryInput.classList.remove("hidden");
+    newCategoryInput.focus();
+    deleteCategoryBtn.classList.remove("visible");
+    return;
+  }
+
+  const name = newCategoryInput.value.trim();
+  if (!name || categories[name]) return;
+
+  categories[name] = [];
+  saveCategories();
+  updateCategoryDropdown();
+  categorySelect.value = name;
+  currentCategory = name;
+  newCategoryInput.value = "";
+  newCategoryInput.classList.add("hidden");
+  deleteCategoryBtn.classList.add("visible");
+  renderTasks();
+});
+
+// 🔄 Hide category input when dropdown is focused
+categorySelect.addEventListener("focus", () => {
+  newCategoryInput.classList.add("hidden");
+});
+
+// 🔄 Handle dropdown change (select category)
+categorySelect.addEventListener("change", () => {
+  currentCategory = categorySelect.value;
+  renderTasks();
+  deleteCategoryBtn.classList.add("visible");
+  deleteCategoryBtn.disabled = false; // ✅ This line fixes the issue
+});
+
+// ✅ 🗑️ Delete category (fixed)
+deleteCategoryBtn.addEventListener("click", () => {
+  if (!currentCategory || !categories[currentCategory]) {
+    alert("Please select a category to delete.");
+    return;
+  }
+
+  const confirmDelete = confirm(
+    `Are you sure you want to delete "${currentCategory}" and all its tasks?`
+  );
+  if (!confirmDelete) return;
+
+  delete categories[currentCategory];
+  saveCategories();
+  currentCategory = null;
+  updateCategoryDropdown();
+  categorySelect.selectedIndex = 0;
+  list.innerHTML = "";
+  deleteCategoryBtn.classList.remove("visible");
+  deleteCategoryBtn.disabled = true; // ✅ Hide + disable again
+  alert("Deleted category successfully.");
+});
+
+
+// ⏰ Live Clock
+function updateClock() {
+  const now = new Date();
+  const clockEl = document.getElementById("liveClock");
+  clockEl.textContent = now.toLocaleTimeString();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// 🛠️ Init
+window.addEventListener("load", () => {
+  updateCategoryDropdown();
+});
+
+// 🧱 Service Worker (optional for PWA)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then((reg) => console.log("Service Worker registered!", reg))
+      .catch((err) =>
+        console.error("Service Worker registration failed:", err)
+      );
+  });
+}
+console.log("Delete button:", deleteCategoryBtn);
