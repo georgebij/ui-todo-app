@@ -56,13 +56,14 @@
     <ul id="task-list"></ul>
     <div id="liveClock" class="clock"></div>
   </div>
-  <script src="script.js"></script>
-  <script type="module">
-  // Import the functions you need from the SDKs
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+<!-- Your main script.js (regular script) -->
+<script src="script.js"></script>
 
-  // Your web app's Firebase configuration
+<!-- Firebase SDK module -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
   const firebaseConfig = {
     apiKey: "AIzaSyBXXNTzZo-lbED9MZQIotO3fujYIapafr4",
     authDomain: "ui-todo-app-9a3b5.firebaseapp.com",
@@ -72,10 +73,18 @@
     appId: "1:333238646450:web:823051916561913a353bab"
   };
 
-  // Initialize Firebase and Firestore
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  // Make addTaskToFirebase accessible to script.js
+  window.addTaskToFirebase = async function (task) {
+    try {
+      const docRef = await addDoc(collection(db, "tasks"), task);
+      console.log("✅ Task synced to Firebase with ID:", docRef.id);
+    } catch (e) {
+      console.error("❌ Firebase Error:", e);
+    }
+  };
   // Make Firestore available globally
   window.firebaseDB = db;
 </script>
