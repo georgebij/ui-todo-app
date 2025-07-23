@@ -1,171 +1,172 @@
-document.addEventListener("DOMContentLoaded", function () {
-  // Firebase: global app variable
-  let db;
-  import("https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js").then(({ initializeApp }) => {
-    import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js").then(({ getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc }) => {
-      const firebaseConfig = {
-        apiKey: "AIzaSyBXXNTzZo-lbED9MZQIotO3fujYIapafr4",
-        authDomain: "ui-todo-app-9a3b5.firebaseapp.com",
-        projectId: "ui-todo-app-9a3b5",
-        storageBucket: "ui-todo-app-9a3b5.firebasestorage.app",
-        messagingSenderId: "333238646450",
-        appId: "1:333238646450:web:823051916561913a353bab"
-      };
-      const app = initializeApp(firebaseConfig);
-      db = getFirestore(app);
-    });
-  });
-
+document.addEventListener("DOMContentLoaded", () => {
   const taskInput = document.getElementById("task-input");
   const taskList = document.getElementById("task-list");
   const addTaskBtn = document.getElementById("add-task-btn");
   const categorySelect = document.getElementById("category-select");
   const addCategoryBtn = document.getElementById("add-category-btn");
-  const newCategoryInput = document.getElementById("new-category-input");
   const deleteCategoryBtn = document.getElementById("delete-category-btn");
-
+  const newCategoryInput = document.getElementById("new-category-input");
   const clockElement = document.getElementById("clock");
-  const toggleModeBtn = document.getElementById("toggle-mode");
+  const micBtn = document.getElementById("mic-btn");
+  const toggleDarkMode = document.getElementById("toggle-dark-mode");
 
-  // Dark Mode
-  toggleModeBtn.addEventListener("click", () => {
+  // DARK MODE
+  toggleDarkMode.addEventListener("click", () => {
     document.body.classList.toggle("dark-mode");
+    localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
   });
 
-  // Clock
+  if (localStorage.getItem("darkMode") === "true") {
+    document.body.classList.add("dark-mode");
+  }
+
+  // CLOCK
   function updateClock() {
     const now = new Date();
     clockElement.textContent = now.toLocaleTimeString();
   }
-  setInterval(updateClock, 1000);
   updateClock();
+  setInterval(updateClock, 1000);
 
-  // Initialize categories
+  // CATEGORY HANDLING
+  function saveCategories(categories) {
+    localStorage.setItem("categories", JSON.stringify(categories));
+  }
+
   function loadCategories() {
     const categories = JSON.parse(localStorage.getItem("categories")) || [];
-    categorySelect.innerHTML = "";
+    categorySelect.innerHTML = `<option value="">Select Category</option>`;
     categories.forEach((cat) => {
       const option = document.createElement("option");
       option.value = cat;
       option.textContent = cat;
       categorySelect.appendChild(option);
     });
-    if (categories.length > 0) {
-      deleteCategoryBtn.disabled = false;
-    } else {
-      deleteCategoryBtn.disabled = true;
+    deleteCategoryBtn.disabled = true;
+  }
+
+  function getTasks() {
+    return JSON.parse(localStorage.getItem("tasks")) || {};
+  }
+
+  function saveTasks(tasks) {
+    localStorage.setItem("tasks", JSON.stringify(tasks));
+  }
+
+  function loadTasks() {
+    const selectedCategory = categorySelect.value;
+    const tasks = getTasks();
+    taskList.innerHTML = "";
+    if (selectedCategory && tasks[selectedCategory]) {
+      tasks[selectedCategory].forEach((task, index) => {
+        const li = document.createElement("li");
+        li.textContent = task;
+        taskList.appendChild(li);
+      });
     }
   }
 
-  function saveCategories(categories) {
-    localStorage.setItem("categories", JSON.stringify(categories));
-  }
-
+  // Add category
   addCategoryBtn.addEventListener("click", () => {
     newCategoryInput.style.display = "inline-block";
     newCategoryInput.focus();
+    addCategoryBtn.style.display = "none";
     deleteCategoryBtn.style.display = "none";
   });
 
-  newCategoryInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && newCategoryInput.value.trim() !== "") {
-      const newCategory = newCategoryInput.value.trim();
-      let categories = JSON.parse(localStorage.getItem("categories")) || [];
-      if (!categories.includes(newCategory)) {
-        categories.push(newCategory);
-        saveCategories(categories);
-        loadCategories();
-        categorySelect.value = newCategory;
+  newCategoryInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      const category = newCategoryInput.value.trim();
+      if (category) {
+        const categories = JSON.parse(localStorage.getItem("categories")) || [];
+        if (!categories.includes(category)) {
+          categories.push(category);
+          saveCategories(categories);
+          loadCategories();
+          categorySelect.value = category;
+          loadTasks();
+        }
+        newCategoryInput.value = "";
+        newCategoryInput.style.display = "none";
+        addCategoryBtn.style.display = "inline-block";
+        deleteCategoryBtn.style.display = "inline-block";
       }
-      newCategoryInput.value = "";
-      newCategoryInput.style.display = "none";
-      deleteCategoryBtn.style.display = "inline-block";
     }
   });
 
-  categorySelect.addEventListener("focus", () => {
+  categorySelect.addEventListener("change", () => {
+    loadTasks();
+    deleteCategoryBtn.disabled = !categorySelect.value;
     newCategoryInput.style.display = "none";
-    if (categorySelect.value) {
-      deleteCategoryBtn.style.display = "inline-block";
-    }
+    addCategoryBtn.style.display = "inline-block";
+    deleteCategoryBtn.style.display = "inline-block";
   });
 
   deleteCategoryBtn.addEventListener("click", () => {
     const selected = categorySelect.value;
-    if (!selected) return;
-    if (confirm(`Delete category '${selected}'? This will remove its tasks.`)) {
-      let categories = JSON.parse(localStorage.getItem("categories")) || [];
-      categories = categories.filter((cat) => cat !== selected);
-      saveCategories(categories);
-      localStorage.removeItem(`tasks-${selected}`);
+    if (selected && confirm(`Delete category "${selected}"?`)) {
+      const categories = JSON.parse(localStorage.getItem("categories")) || [];
+      const updatedCategories = categories.filter((c) => c !== selected);
+      saveCategories(updatedCategories);
+      const tasks = getTasks();
+      delete tasks[selected];
+      saveTasks(tasks);
       loadCategories();
-      taskList.innerHTML = "";
+      loadTasks();
     }
   });
 
-  // Tasks
-  function saveTasks(category, tasks) {
-    localStorage.setItem(`tasks-${category}`, JSON.stringify(tasks));
-  }
-
-  function loadTasks() {
+  // Add task (hybrid: localStorage + Firestore)
+  async function addTask() {
     const category = categorySelect.value;
-    if (!category) return;
-    const tasks = JSON.parse(localStorage.getItem(`tasks-${category}`)) || [];
-    taskList.innerHTML = "";
-    tasks.forEach((task, index) => {
-      const li = document.createElement("li");
-      li.textContent = task;
-      const del = document.createElement("button");
-      del.textContent = "❌";
-      del.addEventListener("click", () => {
-        tasks.splice(index, 1);
-        saveTasks(category, tasks);
-        loadTasks();
-      });
-      li.appendChild(del);
-      taskList.appendChild(li);
-    });
-  }
-
-  addTaskBtn.addEventListener("click", async () => {
     const task = taskInput.value.trim();
-    const category = categorySelect.value;
-    if (!task || !category) return;
-    const tasks = JSON.parse(localStorage.getItem(`tasks-${category}`)) || [];
-    tasks.push(task);
-    saveTasks(category, tasks);
-    taskInput.value = "";
-    loadTasks();
+    if (category && task) {
+      const tasks = getTasks();
+      if (!tasks[category]) tasks[category] = [];
+      tasks[category].push(task);
+      saveTasks(tasks);
+      loadTasks();
 
-    // Firestore hybrid save
-    if (typeof addDoc === "function") {
-      try {
-        const docRef = await addDoc(collection(db, "tasks"), {
-          task,
-          category,
-          timestamp: new Date()
-        });
-        console.log("Saved to Firestore:", docRef.id);
-      } catch (e) {
-        console.error("Error saving to Firestore", e);
+      // Firestore save
+      if (window.addTaskToFirebase) {
+        await window.addTaskToFirebase(category, task);
       }
+
+      taskInput.value = "";
     }
+  }
+
+  addTaskBtn.addEventListener("click", addTask);
+
+  taskInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addTask();
   });
 
-  categorySelect.addEventListener("change", loadTasks);
+  // Voice to text
+  if ("webkitSpeechRecognition" in window) {
+    const recognition = new webkitSpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
-  // Initialize
-  loadCategories();
-  if (categorySelect.value) loadTasks();
-
-  // Service worker
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker
-        .register("service-worker.js")
-        .then((reg) => console.log("SW registered", reg))
-        .catch((err) => console.error("SW registration failed", err));
+    micBtn.addEventListener("click", () => {
+      recognition.start();
     });
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      taskInput.value = transcript;
+      recognition.stop();
+    };
+
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error", event);
+    };
+  } else {
+    micBtn.style.display = "none";
   }
+
+  // Load categories/tasks on init
+  loadCategories();
+  loadTasks();
 });
