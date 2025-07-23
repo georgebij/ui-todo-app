@@ -1,149 +1,171 @@
 document.addEventListener("DOMContentLoaded", function () {
-  // DOM Elements
+  // Firebase: global app variable
+  let db;
+  import("https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js").then(({ initializeApp }) => {
+    import("https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js").then(({ getFirestore, collection, addDoc, getDocs, doc, deleteDoc, setDoc }) => {
+      const firebaseConfig = {
+        apiKey: "AIzaSyBXXNTzZo-lbED9MZQIotO3fujYIapafr4",
+        authDomain: "ui-todo-app-9a3b5.firebaseapp.com",
+        projectId: "ui-todo-app-9a3b5",
+        storageBucket: "ui-todo-app-9a3b5.firebasestorage.app",
+        messagingSenderId: "333238646450",
+        appId: "1:333238646450:web:823051916561913a353bab"
+      };
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+    });
+  });
+
   const taskInput = document.getElementById("task-input");
-  const addTaskBtn = document.getElementById("add-task-btn");
   const taskList = document.getElementById("task-list");
+  const addTaskBtn = document.getElementById("add-task-btn");
   const categorySelect = document.getElementById("category-select");
   const addCategoryBtn = document.getElementById("add-category-btn");
-  const categoryInputContainer = document.getElementById("category-input-container");
-  const newCategoryInput = document.getElementById("new-category");
+  const newCategoryInput = document.getElementById("new-category-input");
   const deleteCategoryBtn = document.getElementById("delete-category-btn");
+
+  const clockElement = document.getElementById("clock");
   const toggleModeBtn = document.getElementById("toggle-mode");
 
-  // Load from localStorage
-  function getStoredTasks() {
-    return JSON.parse(localStorage.getItem("tasks")) || [];
-  }
+  // Dark Mode
+  toggleModeBtn.addEventListener("click", () => {
+    document.body.classList.toggle("dark-mode");
+  });
 
-  function saveTasks(tasks) {
-    localStorage.setItem("tasks", JSON.stringify(tasks));
+  // Clock
+  function updateClock() {
+    const now = new Date();
+    clockElement.textContent = now.toLocaleTimeString();
   }
+  setInterval(updateClock, 1000);
+  updateClock();
 
-  function getCategories() {
-    return JSON.parse(localStorage.getItem("categories")) || [];
+  // Initialize categories
+  function loadCategories() {
+    const categories = JSON.parse(localStorage.getItem("categories")) || [];
+    categorySelect.innerHTML = "";
+    categories.forEach((cat) => {
+      const option = document.createElement("option");
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+    if (categories.length > 0) {
+      deleteCategoryBtn.disabled = false;
+    } else {
+      deleteCategoryBtn.disabled = true;
+    }
   }
 
   function saveCategories(categories) {
     localStorage.setItem("categories", JSON.stringify(categories));
   }
 
-  // Display Tasks
+  addCategoryBtn.addEventListener("click", () => {
+    newCategoryInput.style.display = "inline-block";
+    newCategoryInput.focus();
+    deleteCategoryBtn.style.display = "none";
+  });
+
+  newCategoryInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && newCategoryInput.value.trim() !== "") {
+      const newCategory = newCategoryInput.value.trim();
+      let categories = JSON.parse(localStorage.getItem("categories")) || [];
+      if (!categories.includes(newCategory)) {
+        categories.push(newCategory);
+        saveCategories(categories);
+        loadCategories();
+        categorySelect.value = newCategory;
+      }
+      newCategoryInput.value = "";
+      newCategoryInput.style.display = "none";
+      deleteCategoryBtn.style.display = "inline-block";
+    }
+  });
+
+  categorySelect.addEventListener("focus", () => {
+    newCategoryInput.style.display = "none";
+    if (categorySelect.value) {
+      deleteCategoryBtn.style.display = "inline-block";
+    }
+  });
+
+  deleteCategoryBtn.addEventListener("click", () => {
+    const selected = categorySelect.value;
+    if (!selected) return;
+    if (confirm(`Delete category '${selected}'? This will remove its tasks.`)) {
+      let categories = JSON.parse(localStorage.getItem("categories")) || [];
+      categories = categories.filter((cat) => cat !== selected);
+      saveCategories(categories);
+      localStorage.removeItem(`tasks-${selected}`);
+      loadCategories();
+      taskList.innerHTML = "";
+    }
+  });
+
+  // Tasks
+  function saveTasks(category, tasks) {
+    localStorage.setItem(`tasks-${category}`, JSON.stringify(tasks));
+  }
+
   function loadTasks() {
-    const selectedCategory = categorySelect.value;
-    const tasks = getStoredTasks().filter(task => task.category === selectedCategory);
+    const category = categorySelect.value;
+    if (!category) return;
+    const tasks = JSON.parse(localStorage.getItem(`tasks-${category}`)) || [];
     taskList.innerHTML = "";
-    tasks.forEach(task => {
+    tasks.forEach((task, index) => {
       const li = document.createElement("li");
-      li.textContent = task.name;
+      li.textContent = task;
+      const del = document.createElement("button");
+      del.textContent = "❌";
+      del.addEventListener("click", () => {
+        tasks.splice(index, 1);
+        saveTasks(category, tasks);
+        loadTasks();
+      });
+      li.appendChild(del);
       taskList.appendChild(li);
     });
   }
 
-  // Add Task (localStorage + Firebase)
-  async function addTask() {
-    const name = taskInput.value.trim();
+  addTaskBtn.addEventListener("click", async () => {
+    const task = taskInput.value.trim();
     const category = categorySelect.value;
-    if (!name || !category) return;
-
-    const task = { name, category, createdAt: new Date().toISOString() };
-    const tasks = getStoredTasks();
+    if (!task || !category) return;
+    const tasks = JSON.parse(localStorage.getItem(`tasks-${category}`)) || [];
     tasks.push(task);
-    saveTasks(tasks);
-    loadTasks();
-
-    if (window.addTaskToFirebase) {
-      await window.addTaskToFirebase(task);
-    }
-
+    saveTasks(category, tasks);
     taskInput.value = "";
-  }
-
-  // Populate dropdown
-  function populateCategorySelect() {
-    const categories = getCategories();
-    categorySelect.innerHTML = "<option value=''>--Select--</option>";
-    categories.forEach(cat => {
-      const option = document.createElement("option");
-      option.value = cat;
-      option.textContent = cat;
-      categorySelect.appendChild(option);
-    });
-  }
-
-  // Add category
-  function addCategory() {
-    const newCat = newCategoryInput.value.trim();
-    if (!newCat) return;
-
-    const categories = getCategories();
-    if (!categories.includes(newCat)) {
-      categories.push(newCat);
-      saveCategories(categories);
-    }
-    newCategoryInput.value = "";
-    categoryInputContainer.style.display = "none";
-    populateCategorySelect();
-  }
-
-  // Delete category
-  function deleteCategory() {
-    const selectedCategory = categorySelect.value;
-    if (!selectedCategory) return;
-
-    const categories = getCategories().filter(c => c !== selectedCategory);
-    saveCategories(categories);
-
-    const updatedTasks = getStoredTasks().filter(task => task.category !== selectedCategory);
-    saveTasks(updatedTasks);
-
-    populateCategorySelect();
     loadTasks();
-    deleteCategoryBtn.disabled = true;
-  }
 
-  // Toggle dark/light mode
-  function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-  }
-
-  // Live clock
-  function updateClock() {
-    const clock = document.getElementById("clock");
-    if (clock) {
-      const now = new Date();
-      clock.textContent = now.toLocaleTimeString();
+    // Firestore hybrid save
+    if (typeof addDoc === "function") {
+      try {
+        const docRef = await addDoc(collection(db, "tasks"), {
+          task,
+          category,
+          timestamp: new Date()
+        });
+        console.log("Saved to Firestore:", docRef.id);
+      } catch (e) {
+        console.error("Error saving to Firestore", e);
+      }
     }
-  }
-  setInterval(updateClock, 1000);
-  updateClock();
-
-  // Event Listeners
-  addTaskBtn.addEventListener("click", addTask);
-  addCategoryBtn.addEventListener("click", () => {
-    categoryInputContainer.style.display = "block";
-    deleteCategoryBtn.style.display = "none";
   });
-  newCategoryInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") addCategory();
-  });
-  categorySelect.addEventListener("change", () => {
-    loadTasks();
-    deleteCategoryBtn.style.display = categorySelect.value ? "inline-block" : "none";
-  });
-  deleteCategoryBtn.addEventListener("click", deleteCategory);
-  toggleModeBtn.addEventListener("click", toggleDarkMode);
 
-  // Initial load
-  populateCategorySelect();
-  loadTasks();
+  categorySelect.addEventListener("change", loadTasks);
 
-  // Service Worker Registration
+  // Initialize
+  loadCategories();
+  if (categorySelect.value) loadTasks();
+
+  // Service worker
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
       navigator.serviceWorker
-        .register("/ui-todo-app/service-worker.js")
-        .then(reg => console.log("Service Worker registered!", reg))
-        .catch(err => console.error("Service Worker registration failed:", err));
+        .register("service-worker.js")
+        .then((reg) => console.log("SW registered", reg))
+        .catch((err) => console.error("SW registration failed", err));
     });
   }
 });
