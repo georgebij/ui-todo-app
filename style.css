@@ -11,7 +11,7 @@ body {
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 10px #ccc;
-  width: 90%;
+  width: 95%;
   max-width: 500px;
   margin: 0 auto;
   box-sizing: border-box;
@@ -61,7 +61,6 @@ input {
 }
 
 button {
-  margin-right: auto;
   padding: 10px 16px;
   border: 1px solid rgb(13, 46, 232);
   border-radius: 10px;
