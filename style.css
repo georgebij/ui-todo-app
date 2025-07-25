@@ -1,13 +1,13 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #f7f7f7;
+  background-color: #fbfbfa;
   display: flex;
   justify-content: center;
   padding-top: 50px;
 }
 
 .container {
-  background-color: #f6f8fa;
+  background-color: #eff31d;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 10px #ccc;
@@ -50,9 +50,19 @@ input {
   margin-right: 10px;
 }
 
+.info-btn {
+  background-color: #e9eaeb;
+  border: 1px solid blue;
+  padding: 8px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
 button {
   padding: 10px 16px;
-  border: solid 1px rgb(13, 46, 232);
+  border: 1px solid rgb(13, 46, 232);
   border-radius: 10px;
   background-color: #e9eaeb;
   color: #333;
@@ -125,16 +135,6 @@ li.completed {
 body.dark #instructions {
   background-color: #3a3a3a;
   color: #eee;
-}
-
-.info-btn {
-  background-color: #bcc1e3;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 12px;
-  cursor: pointer;
-  font-weight: bold;
-  margin-bottom: 10px;
 }
 
 /* Top bar */
@@ -246,12 +246,8 @@ input:checked + .slider:before {
   margin-top: 20px;
   font-size: 1.2rem;
   text-align: center;
-  color: #555;
+  color: #120202;
 }
 body.dark .clock {
   color: #faec28;
-}
-label {
-  position: absolute;
-  left: -9999px;
 }
