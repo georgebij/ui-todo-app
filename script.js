@@ -184,16 +184,13 @@ window.addEventListener("load", () => {
   updateCategoryDropdown();
 });
 
-// 🧱 Service Worker (optional for PWA)
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-     navigator.serviceWorker
-+   .register("./service-worker.js", { scope: "./" })
-    .then((reg) => console.log("Service Worker registered!", reg))
-    .catch((err) =>
-      console.error("Service Worker registration failed:", err)
-    );
-  });
+// 🧱 Service Worker (PWA)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .register('service-worker.js', { scope: './' })
+    .then(() => navigator.serviceWorker.ready)
+    .then(reg => console.log('Service Worker ready. Scope:', reg.scope))
+    .catch(err => console.error('Service Worker registration failed:', err));
 }
 
 console.log("Delete button:", deleteCategoryBtn);
