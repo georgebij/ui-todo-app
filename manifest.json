@@ -1,46 +1,24 @@
 {
   "name": "To-Do List",
   "short_name": "To-Do",
-  "description": "A voice-enabled categorized To-Do List with dark mode, offline access, and clock.",
-  "start_url": "index.html",
+  "description": "A voice-enabled categorized To-Do List with dark mode, offline access, and a live clock.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f5f5f5",
   "theme_color": "#d3e67e",
   "orientation": "portrait",
-  "id": "/",
-  "scope": "/",
+  "launch_handler": { "client_mode": "navigate-existing" },
   "icons": [
-    {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
   ],
   "screenshots": [
-    {
-      "src": "screenshot1.png",
-      "type": "image/png",
-      "sizes": "540x960",
-      "label": "Main Task Screen"
-    },
-    {
-      "src": "screenshot2.png",
-      "type": "image/png",
-      "sizes": "540x960",
-      "label": "Dark Mode Enabled"
-    }
+    { "src": "screenshot1.png", "type": "image/png", "sizes": "540x960", "label": "Main Task Screen" },
+    { "src": "screenshot2.png", "type": "image/png", "sizes": "540x960", "label": "Dark Mode Enabled" }
   ],
   "categories": ["productivity", "tools"],
   "lang": "en",
-  "dir": "ltr",
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  }
+  "dir": "ltr"
 }
