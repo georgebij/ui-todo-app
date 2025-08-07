@@ -11,8 +11,6 @@ const categorySelect = document.getElementById("category-select");
 const newCategoryInput = document.getElementById("new-category-input");
 const addCategoryBtn = document.getElementById("add-category-btn");
 const deleteCategoryBtn = document.getElementById("delete-category-btn");
-document.getElementById('enableNotifsBtn')?.addEventListener('click', enableNotifications);
-
 
 let categories = JSON.parse(localStorage.getItem("todoCategories")) || {};
 let currentCategory = null;
@@ -41,7 +39,7 @@ window.addEventListener("DOMContentLoaded", () => {
       : "🔽 Hide Instructions";
   });
 
-  darkToggle?.addEventListener("change", () => {
+  darkToggle.addEventListener("change", () => {
     document.body.classList.toggle("dark", darkToggle.checked);
   });
 });
@@ -57,9 +55,6 @@ function addTask() {
   input.value = "";
   saveCategories();
   renderTasks();
-
-  // Request a background sync to persist changes when online
-  requestBackgroundSync();
 }
 
 // 🗑️ Render task list
@@ -80,14 +75,12 @@ function renderTasks() {
       task.completed = !task.completed;
       saveCategories();
       renderTasks();
-      requestBackgroundSync();
     });
 
     li.querySelector("button").addEventListener("click", () => {
       categories[currentCategory].splice(index, 1);
       saveCategories();
       renderTasks();
-      requestBackgroundSync();
     });
 
     list.appendChild(li);
@@ -138,7 +131,6 @@ addCategoryBtn.addEventListener("click", () => {
   newCategoryInput.classList.add("hidden");
   deleteCategoryBtn.classList.add("visible");
   renderTasks();
-  requestBackgroundSync();
 });
 
 // 🔄 Hide category input when dropdown is focused
@@ -175,9 +167,8 @@ deleteCategoryBtn.addEventListener("click", () => {
   deleteCategoryBtn.classList.remove("visible");
   deleteCategoryBtn.disabled = true; // ✅ Hide + disable again
   alert("Deleted category successfully.");
-
-  requestBackgroundSync();
 });
+
 
 // ⏰ Live Clock
 function updateClock() {
@@ -188,72 +179,20 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// ===== PWA: Service Worker registration (register immediately)
+// 🛠️ Init
+window.addEventListener("load", () => {
+  updateCategoryDropdown();
+});
+
+// 🧱 Service Worker (optional for PWA)
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("service-worker.js", { scope: "./" })
-    .then(async (reg) => {
-      console.log("Service Worker registered!", reg);
-
-      // Periodic Background Sync (supported on some Chromium PWAs)
-      try {
-        if ("periodicSync" in reg) {
-          const status = await navigator.permissions.query({ name: "periodic-background-sync" });
-          if (status.state === "granted") {
-            // Refresh at least every 24 hours
-            await reg.periodicSync.register("asset-cache", { minInterval: 24 * 60 * 60 * 1000 });
-            console.log("Periodic sync registered.");
-          } else {
-            console.log("Periodic sync permission not granted.");
-          }
-        } else {
-          console.log("Periodic sync not supported on this browser.");
-        }
-      } catch (e) {
-        console.log("Periodic sync registration error:", e);
-      }
-
-      return navigator.serviceWorker.ready;
-    })
-    .then((readyReg) => {
-      console.log("Service Worker ready. Scope:", readyReg.scope);
-    })
-    .catch((err) => console.error("Service Worker registration failed:", err));
-}
-
-// ===== Background Sync: helper to request a one-off sync
-async function requestBackgroundSync() {
-  if (!("serviceWorker" in navigator) || !("SyncManager" in window)) return;
-  try {
-    const reg = await navigator.serviceWorker.ready;
-    await reg.sync.register("sync-tasks");
-    console.log("Background sync registered.");
-  } catch (err) {
-    console.warn("Background sync registration failed:", err);
-  }
-}
-
-// ===== Push Notifications: enable helper (call from a UI button when desired)
-async function enableNotifications() {
-  if (!("Notification" in window) || !("serviceWorker" in navigator)) {
-    alert("Notifications not supported in this browser.");
-    return;
-  }
-  const permission = await Notification.requestPermission();
-  if (permission !== "granted") {
-    console.log("Notifications permission denied or dismissed.");
-    return;
-  }
-  const reg = await navigator.serviceWorker.ready;
-  await reg.showNotification("Notifications enabled", {
-    body: "You will receive alerts from the To-Do app.",
-    icon: "icon-192.png",
-    badge: "icon-192.png"
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/service-worker.js")
+      .then((reg) => console.log("Service Worker registered!", reg))
+      .catch((err) =>
+        console.error("Service Worker registration failed:", err)
+      );
   });
-  console.log("Local notification shown.");
 }
-
-// Expose enableNotifications if you want to hook it from HTML:
-// window.enableNotifications = enableNotifications;
-
 console.log("Delete button:", deleteCategoryBtn);
