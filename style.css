@@ -1,13 +1,13 @@
 body {
   font-family: Arial, sans-serif;
-  background-color: #f7f7f7;
+  background-color: #f8f8f8;
   display: flex;
   justify-content: center;
   padding-top: 50px;
 }
 
 .container {
-  background-color: #f6f8fa;
+  background-color: #b2e9b8;
   padding: 20px;
   border-radius: 12px;
   box-shadow: 0 0 10px #ccc;
