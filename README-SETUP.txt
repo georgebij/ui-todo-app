@@ -1,0 +1,7 @@
+PERSONAL PLANNER V1.0
+1. Back up your original GitHub repository using Code > Download ZIP.
+2. Extract this ZIP. Open firebase-config.js in Notepad. Replace the firebaseConfig object values with the exact values from your Firebase web SDK configuration. Keep the export keyword. Replace YOUR_USER_UID with the same complete UID used in Firestore Rules. Never include your password or service account credentials.
+3. Upload the five application files to the root of ui-todo-app, replacing matching files. Commit together. Keep old icons and manifest if desired; V1 does not enable installation or offline use.
+4. Open https://georgebij.github.io/ui-todo-app/ after deployment. If old interface persists, close existing tabs and clear only the site's old cache/service worker or test in another browser. Avoid clearing saved login unnecessarily.
+5. Sign in using the Firebase Email/Password user you created. Add a dummy plan, edit it, open another browser, sign in, confirm it appears, delete it and confirm deletion syncs. Reopen the first browser and confirm login persists. Test sign-out. Do not enter private plans until tests pass.
+V1 uses individual Firestore documents under tasks; existing owner-only rules apply. No Google sign-in button yet. No offline storage of plans. No calendar grid, recurrence, backup/export or projects yet. Live Firebase integration must be tested by the owner. The standard Firebase web config and UID are public identifiers, not secrets; the rules enforce access.
