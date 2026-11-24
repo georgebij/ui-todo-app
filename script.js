@@ -1,198 +1,24 @@
-// DOM Elements
-const addBtn = document.getElementById("add-task");
-const micBtn = document.getElementById("mic");
-const input = document.getElementById("task-input");
-const list = document.getElementById("task-list");
-const helpBtn = document.getElementById("helpBtn");
-const instructions = document.getElementById("instructions");
-const darkToggle = document.getElementById("darkModeToggle");
-
-const categorySelect = document.getElementById("category-select");
-const newCategoryInput = document.getElementById("new-category-input");
-const addCategoryBtn = document.getElementById("add-category-btn");
-const deleteCategoryBtn = document.getElementById("delete-category-btn");
-
-let categories = JSON.parse(localStorage.getItem("todoCategories")) || {};
-let currentCategory = null;
-
-// 🎤 Speech input handling
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = new SpeechRecognition();
-recognition.onresult = function (event) {
-  const transcript = event.results[0][0].transcript;
-  input.value = transcript;
-};
-micBtn.addEventListener("click", () => {
-  micBtn.classList.add("recording");
-  recognition.start();
-});
-recognition.onend = function () {
-  micBtn.classList.remove("recording");
-};
-
-// 🌙 Toggle Instructions and Dark Mode
-window.addEventListener("DOMContentLoaded", () => {
-  helpBtn.addEventListener("click", () => {
-    instructions.classList.toggle("hidden");
-    helpBtn.textContent = instructions.classList.contains("hidden")
-      ? "How to Use"
-      : "🔽 Hide Instructions";
-  });
-
-  darkToggle.addEventListener("change", () => {
-    document.body.classList.toggle("dark", darkToggle.checked);
-  });
-});
-
-// ➕ Add task
-addBtn.addEventListener("click", addTask);
-function addTask() {
-  const taskText = input.value.trim();
-  if (taskText === "" || !currentCategory) return;
-
-  const task = { text: taskText, completed: false };
-  categories[currentCategory].push(task);
-  input.value = "";
-  saveCategories();
-  renderTasks();
+import {firebaseConfig,ownerUid} from './firebase-config.js';
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-app.js';
+import {getAuth,setPersistence,browserLocalPersistence,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-auth.js';
+import {getFirestore,collection,doc,onSnapshot,addDoc,updateDoc,deleteDoc,serverTimestamp} from 'https://www.gstatic.com/firebasejs/13.4.0/firebase-firestore.js';
+const $=id=>document.getElementById(id), message=t=>$('message').textContent=t;
+let auth,db,unsub,plans=[],view='all',editing=null,ready=false,user=null;
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`};
+const future=p=>p.status!=='Completed'&&p.date&&p.date>=today();
+const element=(tag,text,cls)=>{const el=document.createElement(tag);el.textContent=text;if(cls)el.className=cls;return el;};
+function render(){
+ $('upcoming').textContent=plans.filter(future).length;$('unscheduled').textContent=plans.filter(p=>!p.date&&p.status!=='Completed').length;$('preparing').textContent=plans.filter(p=>p.status==='Preparing').length;$('completed').textContent=plans.filter(p=>p.status==='Completed').length;
+ const q=$('search').value.toLowerCase().trim();const list=$('list');list.replaceChildren();
+ const filtered=plans.filter(p=>(view==='all'?p.status!=='Completed':view==='upcoming'?future(p):view==='ideas'?!p.date&&p.status!=='Completed':p.status==='Completed')&&[p.title,p.category,p.scripture,p.reference,p.notes,p.location].join(' ').toLowerCase().includes(q)).sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999')||(a.time||'').localeCompare(b.time||''));
+ if(!filtered.length)list.append(element('p',ready?'No matching plans.':'Loading plans…','meta'));
+ for(const p of filtered){const card=element('article','','plan'),body=element('div',''),actions=element('div','','actions');body.append(element('div',[p.date||'Unscheduled',p.time,p.category,p.status,p.priority].filter(Boolean).join(' · '),'meta'),element('h3',p.title));for(const t of [p.scripture,p.reference,p.location,p.notes])if(t)body.append(element('p',t));const edit=element('button','Edit','secondary');edit.onclick=()=>openEditor(p);const del=element('button','Delete','secondary');del.onclick=async()=>{if(!ready||!user||!confirm('Delete this plan permanently?'))return;del.disabled=true;try{await deleteDoc(doc(db,'tasks',p.id));}catch(e){message('Delete failed: '+e.code);del.disabled=false;}};actions.append(edit,del);card.append(body,actions);list.append(card);}
 }
-
-// 🗑️ Render task list
-function renderTasks() {
-  list.innerHTML = "";
-  if (!currentCategory || !categories[currentCategory]) return;
-
-  categories[currentCategory].forEach((task, index) => {
-    const li = document.createElement("li");
-    if (task.completed) li.classList.add("completed");
-
-    li.innerHTML = `
-      <span>${task.text}</span>
-      <button class="delete-btn">❌</button>
-    `;
-
-    li.querySelector("span").addEventListener("click", () => {
-      task.completed = !task.completed;
-      saveCategories();
-      renderTasks();
-    });
-
-    li.querySelector("button").addEventListener("click", () => {
-      categories[currentCategory].splice(index, 1);
-      saveCategories();
-      renderTasks();
-    });
-
-    list.appendChild(li);
-  });
-}
-
-// 💾 Save categories
-function saveCategories() {
-  localStorage.setItem("todoCategories", JSON.stringify(categories));
-}
-
-// 🔁 Update dropdown
-function updateCategoryDropdown() {
-  categorySelect.innerHTML = '<option disabled selected>Select category</option>';
-  Object.keys(categories).forEach((cat) => {
-    const option = document.createElement("option");
-    option.value = cat;
-    option.textContent = cat;
-    categorySelect.appendChild(option);
-  });
-
-  if (currentCategory && categories[currentCategory]) {
-    categorySelect.value = currentCategory;
-    deleteCategoryBtn.classList.add("visible");
-  } else {
-    deleteCategoryBtn.classList.remove("visible");
-  }
-}
-
-// ➕ Add category button logic
-addCategoryBtn.addEventListener("click", () => {
-  if (newCategoryInput.classList.contains("hidden")) {
-    newCategoryInput.classList.remove("hidden");
-    newCategoryInput.focus();
-    deleteCategoryBtn.classList.remove("visible");
-    return;
-  }
-
-  const name = newCategoryInput.value.trim();
-  if (!name || categories[name]) return;
-
-  categories[name] = [];
-  saveCategories();
-  updateCategoryDropdown();
-  categorySelect.value = name;
-  currentCategory = name;
-  newCategoryInput.value = "";
-  newCategoryInput.classList.add("hidden");
-  deleteCategoryBtn.classList.add("visible");
-  renderTasks();
-});
-
-// 🔄 Hide category input when dropdown is focused
-categorySelect.addEventListener("focus", () => {
-  newCategoryInput.classList.add("hidden");
-});
-
-// 🔄 Handle dropdown change (select category)
-categorySelect.addEventListener("change", () => {
-  currentCategory = categorySelect.value;
-  renderTasks();
-  deleteCategoryBtn.classList.add("visible");
-  deleteCategoryBtn.disabled = false; // ✅ This line fixes the issue
-});
-
-// ✅ 🗑️ Delete category (fixed)
-deleteCategoryBtn.addEventListener("click", () => {
-  if (!currentCategory || !categories[currentCategory]) {
-    alert("Please select a category to delete.");
-    return;
-  }
-
-  const confirmDelete = confirm(
-    `Are you sure you want to delete "${currentCategory}" and all its tasks?`
-  );
-  if (!confirmDelete) return;
-
-  delete categories[currentCategory];
-  saveCategories();
-  currentCategory = null;
-  updateCategoryDropdown();
-  categorySelect.selectedIndex = 0;
-  list.innerHTML = "";
-  deleteCategoryBtn.classList.remove("visible");
-  deleteCategoryBtn.disabled = true; // ✅ Hide + disable again
-  alert("Deleted category successfully.");
-});
-
-
-// ⏰ Live Clock
-function updateClock() {
-  const now = new Date();
-  const clockEl = document.getElementById("liveClock");
-  clockEl.textContent = now.toLocaleTimeString();
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// 🛠️ Init
-window.addEventListener("load", () => {
-  updateCategoryDropdown();
-});
-
-// 🧱 Service Worker (optional for PWA)
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .then((reg) => console.log("Service Worker registered!", reg))
-      .catch((err) =>
-        console.error("Service Worker registration failed:", err)
-      );
-  });
-}
-console.log("Delete button:", deleteCategoryBtn);
+function openEditor(p){if(!ready)return;editing=p?.id||null;const f=$('editor');f.reset();if(p)for(const name of ['title','category','status','date','time','scripture','reference','location','priority','notes'])f.elements[name].value=p[name]||'';$('editorTitle').textContent=p?'Edit plan':'New plan';f.hidden=false;f.scrollIntoView({behavior:'smooth'});f.elements.title.focus();}
+$('newPlan').onclick=()=>openEditor();$('cancel').onclick=()=>{$('editor').hidden=true;editing=null;};$('search').oninput=render;
+for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>{view=b.dataset.view;document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===b));render();};
+$('editor').onsubmit=async e=>{e.preventDefault();if(!ready||!user)return;const data=Object.fromEntries(new FormData(e.target));data.title=data.title.trim();if(!data.title)return;data.updatedAt=serverTimestamp();$('save').disabled=true;try{if(editing)await updateDoc(doc(db,'tasks',editing),data);else await addDoc(collection(db,'tasks'),{...data,createdAt:serverTimestamp()});$('editor').hidden=true;editing=null;}catch(err){message('Save failed: '+err.code);}finally{$('save').disabled=false;}};
+$('loginForm').onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button');b.disabled=true;try{await signInWithEmailAndPassword(auth,$('email').value,$('password').value);$('password').value='';}catch(err){message('Sign-in failed. Check your email and application password. ('+err.code+')');}finally{b.disabled=false;}};
+$('logout').onclick=async()=>{try{await signOut(auth);}catch(e){message('Sign-out failed: '+e.code);}};
+async function start(){if(firebaseConfig.apiKey.startsWith('YOUR_')||firebaseConfig.appId.startsWith('YOUR_')||ownerUid.startsWith('YOUR_')){message('Setup required: fill firebase-config.js with your Firebase configuration and full owner UID.');return;}const app=initializeApp(firebaseConfig);auth=getAuth(app);db=getFirestore(app);await setPersistence(auth,browserLocalPersistence);onAuthStateChanged(auth,async u=>{if(unsub)unsub();unsub=null;ready=false;user=null;plans=[];$('planner').hidden=true;$('editor').hidden=true;$('logout').hidden=true;$('login').hidden=true;editing=null;render();if(!u){$('login').hidden=false;message('Sign in to access your private plans.');return;}if(u.uid!==ownerUid){await signOut(auth);message('Access denied: this is not the authorized account.');return;}user=u;$('logout').hidden=false;$('planner').hidden=false;$('newPlan').disabled=true;message('Loading your plans…');unsub=onSnapshot(collection(db,'tasks'),{includeMetadataChanges:true},snap=>{if(user!==u)return;plans=snap.docs.map(d=>({...d.data(),id:d.id}));ready=!snap.metadata.fromCache||ready;$('newPlan').disabled=!ready;message(snap.metadata.hasPendingWrites?'Saving to cloud…':snap.metadata.fromCache?'Offline or reconnecting — cloud confirmation pending.':'Connected · All changes synced');render();},err=>{ready=false;plans=[];$('planner').hidden=true;message('Database access failed: '+err.code);});});}
+start().catch(e=>message('Startup failed: '+(e.code||e.message)));
