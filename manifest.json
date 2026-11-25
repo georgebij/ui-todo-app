@@ -1,32 +1,25 @@
 {
-  "name": "To-Do List",
-  "short_name": "To-Do",
-  "description": "A voice-enabled categorized To-Do List with dark mode, offline access, and a live clock.",
   "id": "./",
-  "start_url": "./index.html",
+  "name": "Personal Planner",
+  "short_name": "My Planner",
+  "description": "Personal teaching and ministry planner",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#f5f5f5",
-  "theme_color": "#d3e67e",
-  "orientation": "portrait",
-  "launch_handler": { "client_mode": "navigate-existing" },
-
+  "background_color": "#f3f5f2",
+  "theme_color": "#163b39",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
-  ],
-
-  "screenshots": [
-    { "src": "screenshot1.png", "type": "image/png", "sizes": "540x960", "label": "Main Task Screen" },
-    { "src": "screenshot2.png", "type": "image/png", "sizes": "540x960", "label": "Dark Mode Enabled" }
-  ],
-
-  "categories": ["productivity", "tools"],
-  "lang": "en",
-  "dir": "ltr",
-
-  "prefer_related_applications": false,
-  "related_applications": [],
-
-  "iarc_rating_id": "TBD-REPLACE-WITH-IARC-ID"
+    {
+      "src": "planner-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "planner-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }
